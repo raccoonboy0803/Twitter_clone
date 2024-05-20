@@ -4,7 +4,7 @@ import Home from './routes/Home.tsx';
 import Profile from './routes/Profile.tsx';
 import Login from './routes/Login.tsx';
 import CreateAccount from './routes/CreateAccount.tsx';
-import { createGlobalStyle } from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
 import reset from 'styled-reset';
 import { useEffect, useState } from 'react';
 import LoadingScreen from './components/LoadingScreen.tsx';
@@ -58,11 +58,17 @@ function App() {
     init();
   }, []);
   return (
-    <>
+    <Wrapper>
       <GlobalStyles />
       {isLoading ? <LoadingScreen /> : <RouterProvider router={router} />}
-    </>
+    </Wrapper>
   );
 }
 
 export default App;
+
+const Wrapper = styled.div`
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+`;

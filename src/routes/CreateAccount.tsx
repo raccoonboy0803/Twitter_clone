@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../firebase';
+import { useNavigate } from 'react-router-dom';
 
 function CreateAccount() {
   const [isLoading, setIsLoading] = useState(false);
@@ -7,6 +10,7 @@ function CreateAccount() {
   const [email, setEmil] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const {
@@ -21,12 +25,27 @@ function CreateAccount() {
     }
   };
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isLoading || name === '' || email === '' || password == '') return;
+
     try {
       // create an accont
       // set the name of the user
       // redirect to the homepage
+      setIsLoading(true);
+      const credentials = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      console.log(credentials.user);
+
+      await updateProfile(credentials.user, {
+        displayName: name,
+      });
+
+      navigate('/');
     } catch (error) {
       // setError
     } finally {
@@ -67,6 +86,7 @@ function CreateAccount() {
           value={isLoading ? 'Loading...' : 'Create Account'}
         />
       </Form>
+      {error !== '' ? <Error>{error}</Error> : null}
     </Wrapper>
   );
 }
@@ -100,4 +120,15 @@ const Input = styled.input`
   border-radius: 50px;
   width: 100%;
   font-size: 16px;
+  &[type='submit'] {
+    cursor: pointer;
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+`;
+
+const Error = styled.span`
+  font-weight: 600;
+  color: tomato;
 `;
