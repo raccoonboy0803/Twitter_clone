@@ -1,9 +1,21 @@
 import { useState } from 'react';
-import styled from 'styled-components';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../firebase';
-import { useNavigate } from 'react-router-dom';
+import { FirebaseError } from 'firebase/app';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Error,
+  Input,
+  Switcher,
+  Title,
+  Wrapper,
+  Form,
+} from '../components/AuthComponents';
+import GithubBtn from '../components/GithubBtn';
 
+//Nico
+//nico@nomadcoders.co
+//123456789!
 function CreateAccount() {
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState('');
@@ -27,19 +39,16 @@ function CreateAccount() {
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError('');
     if (isLoading || name === '' || email === '' || password == '') return;
 
     try {
-      // create an accont
-      // set the name of the user
-      // redirect to the homepage
       setIsLoading(true);
       const credentials = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
-      console.log(credentials.user);
 
       await updateProfile(credentials.user, {
         displayName: name,
@@ -47,17 +56,17 @@ function CreateAccount() {
 
       navigate('/');
     } catch (error) {
-      // setError
+      if (error instanceof FirebaseError) {
+        setError(error.message);
+      }
     } finally {
       setIsLoading(false);
     }
-
-    console.log(name, email, password);
   };
 
   return (
     <Wrapper>
-      <Title>Log into X</Title>
+      <Title>Join into X</Title>
       <Form onSubmit={onSubmit}>
         <Input
           name="name"
@@ -87,48 +96,12 @@ function CreateAccount() {
         />
       </Form>
       {error !== '' ? <Error>{error}</Error> : null}
+      <Switcher>
+        Already have an account? <Link to={'/login'}>Log In &rarr;</Link>
+      </Switcher>
+      <GithubBtn />
     </Wrapper>
   );
 }
 
 export default CreateAccount;
-
-const Wrapper = styled.div`
-  height: 100%;
-  width: 420px;
-  padding: 50px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const Title = styled.h1`
-  font-size: 42px;
-`;
-
-const Form = styled.form`
-  margin-top: 50px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  gap: 10px;
-`;
-
-const Input = styled.input`
-  padding: 10px 20px;
-  border: none;
-  border-radius: 50px;
-  width: 100%;
-  font-size: 16px;
-  &[type='submit'] {
-    cursor: pointer;
-    &:hover {
-      opacity: 0.8;
-    }
-  }
-`;
-
-const Error = styled.span`
-  font-weight: 600;
-  color: tomato;
-`;
