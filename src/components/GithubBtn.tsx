@@ -26,7 +26,7 @@ export default GithubBtn;
 
 const Button = styled.span`
   cursor: pointer;
-  margin-top: 50px;
+  margin-top: 30px;
   width: 100%;
   color: black;
   background-color: white;

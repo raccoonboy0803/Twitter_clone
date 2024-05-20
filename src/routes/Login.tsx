@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  getAuth,
+  sendPasswordResetEmail,
+} from 'firebase/auth';
 import { auth } from '../firebase';
 import { FirebaseError } from 'firebase/app';
 import { Link, useNavigate } from 'react-router-dom';
@@ -10,14 +14,15 @@ import {
   Switcher,
   Title,
   Wrapper,
-} from '../components/AuthComponents';
+} from '../components/authComponents';
 import GithubBtn from '../components/GithubBtn';
 //Nico
 //nico@nomadcoders.co
 //123456789!
 function CreateAccount() {
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmil] = useState('');
+  const [changePwd, setChangePwd] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -27,7 +32,7 @@ function CreateAccount() {
       target: { name, value },
     } = e;
     if (name === 'email') {
-      setEmil(value);
+      setEmail(value);
     } else if (name === 'password') {
       setPassword(value);
     }
@@ -51,6 +56,25 @@ function CreateAccount() {
     }
   };
 
+  const changePassword = async () => {
+    if (email === '') {
+      alert('Write your email');
+      return;
+    }
+    try {
+      setChangePwd(true);
+      const auth = getAuth();
+      await sendPasswordResetEmail(auth, email);
+      alert('Password reset email sent!');
+    } catch (error) {
+      if (error instanceof FirebaseError) {
+        setError(error.message);
+      }
+    } finally {
+      setChangePwd(false);
+    }
+  };
+
   return (
     <Wrapper>
       <Title>Log into X</Title>
@@ -70,13 +94,26 @@ function CreateAccount() {
           type="password"
           required
         />
-        <Input type="submit" value={isLoading ? 'Loading...' : 'Login'} />
+        <Input
+          type="submit"
+          value={
+            isLoading
+              ? 'Loading...'
+              : changePwd
+              ? 'Send Password Reset Email'
+              : 'Login'
+          }
+        />
       </Form>
       {error !== '' ? <Error>{error}</Error> : null}
       <Switcher>
-        Don't have an account?{' '}
-        <Link to={'/create-account'}>Create one &rarr;</Link>
+        <p>
+          Don't have an account?
+          <Link to={'/create-account'}>Create one &rarr;</Link>
+        </p>
+        <span onClick={changePassword}>Forgot your password?</span>
       </Switcher>
+
       <GithubBtn />
     </Wrapper>
   );

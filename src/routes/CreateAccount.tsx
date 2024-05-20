@@ -10,7 +10,7 @@ import {
   Title,
   Wrapper,
   Form,
-} from '../components/AuthComponents';
+} from '../components/authComponents';
 import GithubBtn from '../components/GithubBtn';
 
 //Nico
