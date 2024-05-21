@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { auth, db } from '../firebase';
-import { addDoc, collection } from 'firebase/firestore';
+import { auth, db, storage } from '../firebase';
+import { addDoc, collection, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 function PostTweetForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -11,12 +12,18 @@ function PostTweetForm() {
   const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTweet(e.target.value);
   };
+
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
+
     if (files && files.length === 1) {
+      if (files[0].size >= 1048576) {
+        alert('The image size must be 1 MB or less.');
+      }
       setFile(files[0]);
     }
   };
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const user = auth.currentUser;
@@ -24,12 +31,25 @@ function PostTweetForm() {
 
     try {
       setIsLoading(true);
-      await addDoc(collection(db, 'tweets'), {
+      const doc = await addDoc(collection(db, 'tweets'), {
         tweet,
         createdAt: Date.now(),
-        username: user?.displayName || 'Anonymous',
-        userId: user?.uid,
+        username: user.displayName || 'Anonymous',
+        userId: user.uid,
       });
+      if (file) {
+        const locationRef = ref(
+          storage,
+          `tweets/${user.uid}-${user.displayName}/${doc.id}`
+        );
+        const fileUploadResult = await uploadBytes(locationRef, file);
+        const url = await getDownloadURL(fileUploadResult.ref);
+        await updateDoc(doc, {
+          photo: url,
+        });
+      }
+      setTweet('');
+      setFile(null);
     } catch (error) {
       console.log(error);
     } finally {
@@ -39,6 +59,7 @@ function PostTweetForm() {
   return (
     <Form onSubmit={onSubmit}>
       <TextArea
+        required
         value={tweet}
         onChange={onChange}
         rows={5}
