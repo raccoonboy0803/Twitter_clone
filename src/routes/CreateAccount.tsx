@@ -13,9 +13,6 @@ import {
 } from '../components/authComponents';
 import GithubBtn from '../components/GithubBtn';
 
-//Nico
-//nico@nomadcoders.co
-//123456789!
 function CreateAccount() {
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState('');

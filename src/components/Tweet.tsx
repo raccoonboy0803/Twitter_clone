@@ -15,7 +15,6 @@ function Tweet({ username, photo, tweet, userId, id }: TweetProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTweet, setEditedTweet] = useState(tweet);
   const [newFile, setNewFile] = useState<File | null>(null);
-  // const [newPhotoUrl, setNewPhotoUrl] = useState<string | null>(null);
 
   const onDelete = async () => {
     const ok = confirm('Are you sure you want to delete this tweet?');
@@ -42,26 +41,21 @@ function Tweet({ username, photo, tweet, userId, id }: TweetProps) {
 
     try {
       let newPhotoUrl = photo;
-
       if (newFile) {
         if (photo) {
           const oldPhotoRef = ref(storage, `tweets/${user.uid}/${id}`);
           await deleteObject(oldPhotoRef);
         }
-
         const locationRef = ref(storage, `tweets/${user.uid}/${id}`);
         const fileUploadResult = await uploadBytes(locationRef, newFile);
         newPhotoUrl = await getDownloadURL(fileUploadResult.ref);
       }
-
       await updateDoc(doc(db, 'tweets', id), {
         tweet: editedTweet,
         photo: newPhotoUrl,
       });
-
       setIsEditing(false);
       setNewFile(null);
-      // setNewPhotoUrl(newPhotoUrl!);
     } catch (error) {
       console.log(error);
     }
@@ -71,7 +65,6 @@ function Tweet({ username, photo, tweet, userId, id }: TweetProps) {
     setIsEditing(false);
     setEditedTweet(tweet);
     setNewFile(null);
-    // setNewPhotoUrl(null);
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +75,6 @@ function Tweet({ username, photo, tweet, userId, id }: TweetProps) {
         alert('The image size must be 1 MB or less.');
       } else {
         setNewFile(files[0]);
-        // setNewPhotoUrl(URL.createObjectURL(files[0]));
       }
     }
   };
