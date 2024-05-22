@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { auth, db, storage } from '../firebase';
 import { useEffect, useState } from 'react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -10,6 +10,9 @@ import {
   query,
   where,
   onSnapshot,
+  doc,
+  getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { TweetProps } from '../components/Timeline';
@@ -17,8 +20,12 @@ import Tweet from '../components/Tweet';
 
 function Profile() {
   const user = auth.currentUser;
+  console.log('user::', auth);
+
   const [avatar, setAvatar] = useState(user?.photoURL);
   const [tweets, setTweets] = useState<TweetProps[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [newNickname, setNewNickname] = useState(user?.displayName);
 
   const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
@@ -33,6 +40,44 @@ function Profile() {
       await updateProfile(user, {
         photoURL: avatarUrl,
       });
+    }
+  };
+
+  const onEdit = () => {
+    setIsEditing(true);
+  };
+
+  const onCancel = () => {
+    setIsEditing(false);
+    setNewNickname(user?.displayName);
+  };
+
+  const onSave = async () => {
+    if (!user) return;
+
+    try {
+      const userTweetsQuery = query(
+        collection(db, 'tweets'),
+        where('userId', '==', user.uid)
+      );
+
+      const querySnapshot = await getDocs(userTweetsQuery);
+      const batch = writeBatch(db);
+
+      querySnapshot.forEach((document) => {
+        const docRef = doc(db, 'tweets', document.id);
+        batch.update(docRef, { username: newNickname });
+      });
+
+      await batch.commit();
+
+      await updateProfile(user, {
+        displayName: newNickname,
+      });
+
+      setIsEditing(false);
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -90,7 +135,27 @@ function Profile() {
         accept="image/*"
         onChange={onAvatarChange}
       />
-      <Name>{user?.displayName ?? 'Anonymous'}</Name>
+      {isEditing ? (
+        <>
+          <EditInput
+            value={newNickname}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setNewNickname(e.target.value)
+            }
+            maxLength={180}
+          />
+          <div>
+            <SaveButton onClick={onSave}>Save</SaveButton>
+            <CancelButton onClick={onCancel}>Cancel</CancelButton>
+          </div>
+        </>
+      ) : (
+        <>
+          <Name>{user?.displayName ?? 'Anonymous'}</Name>
+          <EditButton onClick={onEdit}>Edit</EditButton>
+        </>
+      )}
+
       <Tweets>
         {tweets.map((tweet) => (
           <Tweet key={tweet.id} {...tweet} />
@@ -142,4 +207,38 @@ const Tweets = styled.div`
   width: 100%;
   flex-direction: column;
   gap: 10px;
+`;
+
+const EditInput = styled.textarea`
+  text-align: center;
+  width: 200px;
+  height: 25px;
+  margin: 10px 0px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  resize: none;
+`;
+
+const buttonStyle = css`
+  background-color: #1d9bf0;
+  color: white;
+  font-weight: 600;
+  border: none;
+  font-size: 12px;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  border-radius: 5px;
+  cursor: pointer;
+`;
+
+const EditButton = styled.button`
+  ${buttonStyle}
+`;
+const SaveButton = styled.button`
+  ${buttonStyle}
+  margin-right: 10px;
+`;
+const CancelButton = styled.button`
+  ${buttonStyle}
 `;
