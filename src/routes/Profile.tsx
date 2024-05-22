@@ -1,12 +1,24 @@
 import styled from 'styled-components';
-import { auth, storage } from '../firebase';
-import { useState } from 'react';
+import { auth, db, storage } from '../firebase';
+import { useEffect, useState } from 'react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import {
+  collection,
+  Unsubscribe,
+  limit,
+  orderBy,
+  query,
+  where,
+  onSnapshot,
+} from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
+import { TweetProps } from '../components/Timeline';
+import Tweet from '../components/Tweet';
 
 function Profile() {
   const user = auth.currentUser;
   const [avatar, setAvatar] = useState(user?.photoURL);
+  const [tweets, setTweets] = useState<TweetProps[]>([]);
 
   const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
@@ -23,6 +35,39 @@ function Profile() {
       });
     }
   };
+
+  useEffect(() => {
+    let unsubscribe: Unsubscribe | null = null;
+
+    const fetchTweets = async () => {
+      const tweetQuery = query(
+        collection(db, 'tweets'),
+        where('userId', '==', user?.uid),
+        orderBy('createdAt', 'desc'),
+        limit(25)
+      );
+
+      unsubscribe = await onSnapshot(tweetQuery, (snapshot) => {
+        const tweets = snapshot.docs.map((doc) => {
+          const { tweet, createdAt, userId, username, photo } = doc.data();
+          return {
+            createdAt,
+            photo,
+            tweet,
+            userId,
+            username,
+            id: doc.id,
+          };
+        });
+        setTweets(tweets);
+      });
+    };
+    fetchTweets();
+
+    return () => {
+      unsubscribe && unsubscribe();
+    };
+  }, []);
   return (
     <Wrapper>
       <AvatarUpload htmlFor="avatar">
@@ -46,6 +91,11 @@ function Profile() {
         onChange={onAvatarChange}
       />
       <Name>{user?.displayName ?? 'Anonymous'}</Name>
+      <Tweets>
+        {tweets.map((tweet) => (
+          <Tweet key={tweet.id} {...tweet} />
+        ))}
+      </Tweets>
     </Wrapper>
   );
 }
@@ -56,6 +106,7 @@ const Wrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   gap: 20px;
 `;
 
@@ -84,4 +135,11 @@ const AvatarInput = styled.input`
 
 const Name = styled.span`
   font-size: 22px;
+`;
+
+const Tweets = styled.div`
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
 `;
